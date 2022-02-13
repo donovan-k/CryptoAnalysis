@@ -3,6 +3,7 @@ Python code to perform various analysis on cryptocurrency
 
 ## Classes
 #### CoinInfo
+<pre>
 > Creates dictionary of dataframes of information of daily information of cryptocurrency  
 > such as opening price, closing price, high price, and low price  
 > 
@@ -30,3 +31,4 @@ Python code to perform various analysis on cryptocurrency
 >   
 > FUNCTIONS:
 > calculate_daily_adx(period=14) - Calculate the daily average directional movement value of a coin using periods of 'period' days  
+</pre>
