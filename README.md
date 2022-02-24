@@ -5,7 +5,7 @@ Python code to perform various analysis on cryptocurrency
 #### CoinInfo
 <pre>
 Creates dictionary of dataframes of information of daily information of cryptocurrency  
-such as opening price, closing price, high price, and low price  
+such as opening price, closing price, high price, and low price 
  
 PARAMETERS: 
 coins (array of strings) - name of coin ex: 'DOGE-USD' for doge coin  
