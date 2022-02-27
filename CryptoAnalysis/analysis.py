@@ -13,35 +13,51 @@ class Analysis:
         self.data = coin_data
 
     """
-        Calculate the daily adx value of a certain coin and returns an array of tuples of (+ or -), value 
+        Calculate the daily average directional movement value of a coin 
+        Returns empty array if the number of rows in data is not greater than the period
     """
     def calculate_daily_adx(self, period=14):
+        # don't run anything if invalid period
+        if len(self.data.index) <= period:
+            return []
+
+        # list of all average direction movement values
+        adx_values = []
+
         # calculate dm_plus and dm_minus for every row
         dm_pluses = []
         dm_minuses = []
         tr_values = []
-        cur_high = []
-        cur_low = []
-        cur_open = []
-        cur_close = []
+
+        # smoothed values
+        sm_dplus = []
+        sm_dminus = []
+        sm_tr = []
+
+        # lists for directional movement index
+        di_pluses = []
+        di_minuses = []
+        dx_values = []
+
+        # current daily statistics
+        cur_high = 0
+        cur_low = 0
+        cur_close = 0
         for i, row in enumerate(self.data):
             if i == 0:
                 cur_high = row['High']
                 cur_low = row['Low']
-                cur_open = row['Open']
                 cur_close = row['Close']
                 continue
 
             # calculate previous values
             prev_high = cur_high
             prev_low = cur_low
-            prev_open = cur_open
             prev_close = cur_close
 
             # calculate new values
             cur_high = row['High']
             cur_low = row['Low']
-            cur_open = row['Open']
             cur_close = row['Close']
 
             # calculate dm plus and dm minus
@@ -54,52 +70,36 @@ class Analysis:
             tr = max(cur_high - cur_low, cur_high - prev_close, cur_low - prev_close)
             tr_values.append(tr)
 
-        # find smoothed values
-        tr_smooth = []
-        dmm_smooth = []
-        dmp_smooth = []
-        first_values = [0, 0, 0]
-        prior_values = [0, 0, 0]
-        adx_values = []
-        prior_adx = 0
-        counter = 0
-        for i in range(0, len(tr_values), period):
-            access_end = i + period
-            if access_end > len(tr_values):
-                access_end = len(tr_values)
-
-            if i == 0:
-                first_values = [sum(tr_values[i:access_end]), sum(dm_minuses[i:access_end]),
-                                sum(dm_pluses[i:access_end])]
-                prior_values = first_values.copy()
+            # continue loop if period is not met
+            if i < period:
                 continue
 
-            # find the smooth values
-            tr_smooth.append(first_values[0] - prior_values[0]/period + sum(tr_values[i:access_end]))
-            dmm_smooth.append(first_values[1] - prior_values[1]/period + sum(dm_minuses[i:access_end]))
-            dmp_smooth.append(first_values[2] - prior_values[2]/period + sum(dm_pluses[i:access_end]))
+            # set the first value of the smoothed dm and tr values
+            if i == period:
+                sm_dplus = [sum(dm_pluses)]
+                sm_dminus = [sum(dm_minuses)]
+                sm_tr = [sum(tr_values)]
+                continue
 
-            # reset the prior values
-            prior_values = [tr_smooth[i-1], dmm_smooth[i-1], dmp_smooth[i-1]].copy()
-            counter += 1
+            # append following smoothed values
+            sm_dplus.append(sm_dplus[0] - sm_dplus[-1]/period + dm_plus)
+            sm_dminus.append(sm_dminus[0] - sm_dminus[-1]/period + dm_minus)
+            sm_tr.append(sm_tr[0] - sm_tr[-1]/period + tr)
 
-            # get the di values for plus and minus
-            di_plus = np.array(dmp_smooth) / np.array(tr_smooth) * 100
-            di_minus = np.array(dmm_smooth) / np.array(tr_smooth) * 100
+            # calculate the di values
+            di_pluses.append(sm_dplus[-1] / sm_tr[-1] * 100)
+            di_minuses.append(sm_dminus[-1] / sm_tr[-1] * 100)
 
-            # get the dmi value
-            dx = np.abs(di_plus - di_minus) / np.abs(di_plus + di_minus) * 100
+            # calculate the directional movement index
+            dx_values.append(abs(di_pluses[-1] - di_minuses[-1]) / abs(di_pluses[-1] + di_minuses[-1]))
 
-            # calculate adx value
-            if i != 0 and (i+1) % period == 0:
-                # calculate first adx value
-                if i+1 == period:
-                    prior_adx = sum(dx) / period
-                    adx_values.append(prior_adx)
-                    continue
+            # finally, calculate the average directional index
+            # first adx value
+            if len(dx_values) == period:
+                adx_values.append(sum(dx_values) / period)
 
-                # calculate later adx values
-                prior_adx = ((prior_adx * 13) + dx) / 14
-                adx_values.append(prior_adx)
+            # following adx values
+            if len(dx_values) > period:
+                adx_values.append((adx_values[-1] * 13 + dx_values[-1]) / 14)
 
         return adx_values
